@@ -21,7 +21,7 @@ def get_extensions():
 
     define_macros = []
     extra_compile_args = {}
-    if (torch.cuda.is_available() and (CUDA_HOME is not None)) or os.getenv(
+    if torch.cuda.is_available() or os.getenv(
         "FORCE_CUDA", "0"
     ) == "1":
         extension = CUDAExtension
@@ -32,13 +32,16 @@ def get_extensions():
             nvcc_flags = ["-O3"]
         else:
             nvcc_flags = nvcc_flags.split(" ")
+        nvcc_flags += ["-I" + os.environ.get("CUDA_INCLUDE", "")]
+        nvcc_flags += ["-I" + os.path.join(os.path.dirname(os.path.abspath(__file__)), "lib/glm/")]
         extra_compile_args = {
             "cxx": ["-O3"],
             "nvcc": nvcc_flags,
         }
 
+
     sources = [s for s in sources]
-    include_dirs = ["src"]
+    include_dirs = ["src", os.environ.get("CUDA_INCLUDE", "")]
     print("sources:", sources)
 
     ext_modules = [
@@ -46,8 +49,8 @@ def get_extensions():
             "diso._C",
             sources,
             include_dirs=include_dirs,
-            define_macros=define_macros,
             extra_compile_args=extra_compile_args,
+            extra_link_args=["-L" + os.environ.get("CUDA_LIB", "")],
         )
     ]
     return ext_modules
